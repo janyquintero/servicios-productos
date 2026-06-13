@@ -1,0 +1,38 @@
+services:
+  service_producto_db:
+    image: postgres:latest
+    container_name: servicio_producto_db
+    environment:
+      POSTGRES_DB: service_producto_db
+      POSTGRES_USER: user_admin
+      POSTGRES_PASSWORD: password_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresq
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "user_admin", "-d", "service_producto_db"]
+      interval: 10s 
+      timeout: 5s
+      retries: 5
+
+  service-producto: 
+    build: .
+    container_name: servicio_producto_app
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://servicio_producto_db:5432/service_producto_db?options=-c%20timezone=UTC
+      - SPRING_DATASOURCE_USERNAME=user_admin
+      - SPRING_DATASOURCE_PASSWORD=password_secret
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - APPLICATION_SECURITY_JWT_SECRET-KEY=3c26702d585d4320662d50624e4d5843350414d415a4f4e4153454352455441
+      - APP_CORS_ALLOWED_ORIGINS=http://localhost:4200
+    restart: always
+    command: ["java", "-jar", "/app_service.jar", "--app.cors.allowed-origins=http://localhost:4200"]
+    depends_on:
+      service_producto_db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
